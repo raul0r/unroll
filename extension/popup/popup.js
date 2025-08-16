@@ -1,4 +1,4 @@
-// popup.js - ThreadKeeper Popup Logic
+// popup.js - ThreadKeeper Popup Logic (Fixed Export)
 
 class PopupManager {
   constructor() {
@@ -102,34 +102,40 @@ class PopupManager {
     if (this.user?.isPremium) {
       this.elements.storageText.textContent = `${threadCount} threads (Premium)`;
       this.elements.storageFill.style.background = '#00BA7C';
-      this.elements.upgradeBtn.style.display = 'none';
+      if (this.elements.upgradeBtn) this.elements.upgradeBtn.style.display = 'none';
     } else {
       this.elements.storageText.textContent = `${threadCount}/${maxFreeThreads} threads (Free)`;
       
       if (threadCount >= maxFreeThreads) {
         this.elements.storageFill.style.background = '#F4212E';
-        this.elements.upgradeBtn.style.display = 'flex';
+        if (this.elements.upgradeBtn) this.elements.upgradeBtn.style.display = 'flex';
       } else if (threadCount >= maxFreeThreads * 0.8) {
         this.elements.storageFill.style.background = '#FFD400';
-        this.elements.upgradeBtn.style.display = 'flex';
+        if (this.elements.upgradeBtn) this.elements.upgradeBtn.style.display = 'flex';
       }
     }
   }
 
   setupEventListeners() {
     // Search
-    this.elements.searchInput.addEventListener('input', (e) => {
-      this.searchQuery = e.target.value;
-      this.elements.clearSearchBtn.style.display = this.searchQuery ? 'flex' : 'none';
-      this.applyFilters();
-    });
+    if (this.elements.searchInput) {
+      this.elements.searchInput.addEventListener('input', (e) => {
+        this.searchQuery = e.target.value;
+        if (this.elements.clearSearchBtn) {
+          this.elements.clearSearchBtn.style.display = this.searchQuery ? 'flex' : 'none';
+        }
+        this.applyFilters();
+      });
+    }
     
-    this.elements.clearSearchBtn.addEventListener('click', () => {
-      this.searchQuery = '';
-      this.elements.searchInput.value = '';
-      this.elements.clearSearchBtn.style.display = 'none';
-      this.applyFilters();
-    });
+    if (this.elements.clearSearchBtn) {
+      this.elements.clearSearchBtn.addEventListener('click', () => {
+        this.searchQuery = '';
+        this.elements.searchInput.value = '';
+        this.elements.clearSearchBtn.style.display = 'none';
+        this.applyFilters();
+      });
+    }
     
     // Filter tabs
     document.querySelectorAll('.filter-tab').forEach(tab => {
@@ -142,19 +148,27 @@ class PopupManager {
     });
     
     // Export all
-    this.elements.exportAllBtn.addEventListener('click', () => {
-      this.exportAllThreads();
-    });
+    if (this.elements.exportAllBtn) {
+      this.elements.exportAllBtn.addEventListener('click', () => {
+        this.exportAllThreads();
+      });
+    }
     
     // Settings
-    this.elements.settingsBtn.addEventListener('click', () => {
-      chrome.runtime.openOptionsPage();
-    });
+    if (this.elements.settingsBtn) {
+      this.elements.settingsBtn.addEventListener('click', () => {
+        if (chrome.runtime.openOptionsPage) {
+          chrome.runtime.openOptionsPage();
+        }
+      });
+    }
     
     // Open sidebar
-    this.elements.openSidebarBtn.addEventListener('click', () => {
-      this.openSidebar();
-    });
+    if (this.elements.openSidebarBtn) {
+      this.elements.openSidebarBtn.addEventListener('click', () => {
+        this.openSidebar();
+      });
+    }
     
     // Visit Twitter
     if (this.elements.visitTwitterBtn) {
@@ -193,7 +207,6 @@ class PopupManager {
     
     // Apply tab filters
     const now = Date.now();
-    const dayAgo = now - (24 * 60 * 60 * 1000);
     const weekAgo = now - (7 * 24 * 60 * 60 * 1000);
     
     switch (this.currentFilter) {
@@ -204,7 +217,7 @@ class PopupManager {
         filtered = filtered.filter(thread => thread.collectionId !== 'default');
         break;
       case 'tagged':
-        filtered = filtered.filter(thread => thread.tags.length > 0);
+        filtered = filtered.filter(thread => thread.tags && thread.tags.length > 0);
         break;
     }
     
@@ -217,40 +230,57 @@ class PopupManager {
 
   renderThreads() {
     // Hide loading state
-    this.elements.loadingState.style.display = 'none';
+    if (this.elements.loadingState) {
+      this.elements.loadingState.style.display = 'none';
+    }
     
     if (this.filteredThreads.length === 0) {
       // Show empty state
-      this.elements.emptyState.style.display = 'flex';
-      this.elements.threadItems.style.display = 'none';
+      if (this.elements.emptyState) {
+        this.elements.emptyState.style.display = 'flex';
+      }
+      if (this.elements.threadItems) {
+        this.elements.threadItems.style.display = 'none';
+      }
       
       // Update empty state message based on context
-      const emptyMessage = this.elements.emptyState.querySelector('p');
-      if (this.searchQuery) {
-        emptyMessage.textContent = 'No threads match your search';
-      } else if (this.currentFilter !== 'all') {
-        emptyMessage.textContent = 'No threads in this category';
-      } else {
-        emptyMessage.textContent = 'Visit Twitter/X and click the save button on any thread to get started!';
+      const emptyMessage = document.querySelector('#emptyState p');
+      if (emptyMessage) {
+        if (this.searchQuery) {
+          emptyMessage.textContent = 'No threads match your search';
+        } else if (this.currentFilter !== 'all') {
+          emptyMessage.textContent = 'No threads in this category';
+        } else {
+          emptyMessage.textContent = 'Visit Twitter/X and click the save button on any thread to get started!';
+        }
       }
     } else {
       // Show thread list
-      this.elements.emptyState.style.display = 'none';
-      this.elements.threadItems.style.display = 'block';
-      
-      // Clear existing items
-      this.elements.threadItems.innerHTML = '';
-      
-      // Render threads
-      this.filteredThreads.forEach(thread => {
-        const item = this.createThreadItem(thread);
-        this.elements.threadItems.appendChild(item);
-      });
+      if (this.elements.emptyState) {
+        this.elements.emptyState.style.display = 'none';
+      }
+      if (this.elements.threadItems) {
+        this.elements.threadItems.style.display = 'block';
+        
+        // Clear existing items
+        this.elements.threadItems.innerHTML = '';
+        
+        // Render threads
+        this.filteredThreads.forEach(thread => {
+          const item = this.createThreadItem(thread);
+          this.elements.threadItems.appendChild(item);
+        });
+      }
     }
   }
 
   createThreadItem(thread) {
     const template = document.getElementById('threadItemTemplate');
+    if (!template) {
+      console.error('Thread item template not found');
+      return document.createElement('div');
+    }
+    
     const clone = template.content.cloneNode(true);
     const item = clone.querySelector('.thread-item');
     
@@ -259,38 +289,35 @@ class PopupManager {
     
     // Set avatar
     const avatar = item.querySelector('.thread-avatar img');
-    avatar.src = thread.authorAvatar || 'assets/default-avatar.png';
-    avatar.alt = thread.authorName;
+    if (avatar) {
+      avatar.src = thread.authorAvatar || 'assets/default-avatar.png';
+      avatar.alt = thread.authorName;
+    }
     
     // Set author info
-    item.querySelector('.author-name').textContent = thread.authorName;
-    item.querySelector('.author-username').textContent = `@${thread.authorUsername}`;
+    const authorName = item.querySelector('.author-name');
+    const authorUsername = item.querySelector('.author-username');
+    if (authorName) authorName.textContent = thread.authorName;
+    if (authorUsername) authorUsername.textContent = `@${thread.authorUsername}`;
     
     // Show verified badge if applicable
     if (thread.authorVerified) {
-      item.querySelector('.verified-badge').style.display = 'inline-flex';
+      const badge = item.querySelector('.verified-badge');
+      if (badge) badge.style.display = 'inline-flex';
     }
     
     // Set metadata
     const savedDate = new Date(thread.savedAt);
     const dateStr = this.formatDate(savedDate);
-    item.querySelector('.thread-date').textContent = dateStr;
-    item.querySelector('.tweet-count').textContent = thread.tweets.length;
+    const threadDate = item.querySelector('.thread-date');
+    const tweetCount = item.querySelector('.tweet-count');
+    if (threadDate) threadDate.textContent = dateStr;
+    if (tweetCount) tweetCount.textContent = thread.tweets ? thread.tweets.length : 0;
     
     // Set preview text
-    const preview = thread.tweets[0]?.text || '';
-    item.querySelector('.thread-preview').textContent = preview;
-    
-    // Add tags
-    const tagsContainer = item.querySelector('.thread-tags');
-    if (thread.tags && thread.tags.length > 0) {
-      thread.tags.forEach(tagId => {
-        const tag = document.createElement('span');
-        tag.className = 'tag';
-        tag.textContent = tagId; // Would need to look up tag name
-        tagsContainer.appendChild(tag);
-      });
-    }
+    const preview = thread.tweets && thread.tweets[0] ? thread.tweets[0].text : '';
+    const previewEl = item.querySelector('.thread-preview');
+    if (previewEl) previewEl.textContent = preview;
     
     // Set up action buttons
     this.setupThreadActions(item, thread);
@@ -307,28 +334,40 @@ class PopupManager {
 
   setupThreadActions(item, thread) {
     // View button
-    item.querySelector('.view-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.viewThread(thread);
-    });
+    const viewBtn = item.querySelector('.view-btn');
+    if (viewBtn) {
+      viewBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.viewThread(thread);
+      });
+    }
     
     // Export button
-    item.querySelector('.export-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.exportThread(thread);
-    });
+    const exportBtn = item.querySelector('.export-btn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.exportThread(thread);
+      });
+    }
     
     // Tag button
-    item.querySelector('.tag-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.manageTags(thread);
-    });
+    const tagBtn = item.querySelector('.tag-btn');
+    if (tagBtn) {
+      tagBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.manageTags(thread);
+      });
+    }
     
     // Delete button
-    item.querySelector('.delete-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.deleteThread(thread);
-    });
+    const deleteBtn = item.querySelector('.delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deleteThread(thread);
+      });
+    }
   }
 
   viewThread(thread) {
@@ -338,28 +377,102 @@ class PopupManager {
     });
   }
 
+  // Export thread method - simple and working
   async exportThread(thread) {
     try {
-      const format = 'markdown'; // Can be made configurable
-      const content = await window.ThreadKeeperStorage.exportThread(thread.id, format);
+      console.log('Exporting thread:', thread);
       
-      const blob = new Blob([content], { type: 'text/markdown' });
+      // Simple text export
+      let content = `Thread by @${thread.authorUsername} (${thread.authorName})\n`;
+      content += `Saved on: ${new Date(thread.savedAt).toLocaleString()}\n`;
+      content += `URL: ${thread.url || 'N/A'}\n`;
+      content += `${'='.repeat(50)}\n\n`;
+      
+      if (thread.tweets && Array.isArray(thread.tweets)) {
+        thread.tweets.forEach((tweet, index) => {
+          content += `[${index + 1}/${thread.tweets.length}]\n`;
+          content += `${tweet.text || 'No text'}\n`;
+          if (tweet.timestamp) {
+            content += `(${new Date(tweet.timestamp).toLocaleString()})\n`;
+          }
+          content += '\n';
+        });
+      } else {
+        content += 'No tweets found in this thread.\n';
+      }
+      
+      // Create and download file
+      const blob = new Blob([content], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
+      const filename = `thread_${thread.authorUsername || 'unknown'}_${Date.now()}.txt`;
       
-      const filename = `thread_${thread.authorUsername}_${Date.now()}.md`;
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
       
-      chrome.downloads.download({
-        url: url,
-        filename: filename,
-        saveAs: true
-      });
+      // Add to DOM, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
-      // Show success notification
-      this.showNotification('Thread exported successfully');
+      // Clean up
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+      
+      console.log('Export completed successfully');
       
     } catch (error) {
-      console.error('Failed to export thread:', error);
-      this.showError('Failed to export thread');
+      console.error('Export failed:', error);
+      alert('Export failed: ' + error.message);
+    }
+  }
+
+  generateExportContent(thread, format) {
+    if (format === 'markdown') {
+      let content = `# Thread by @${thread.authorUsername}\n\n`;
+      content += `**Author:** ${thread.authorName}\n`;
+      content += `**Date Saved:** ${new Date(thread.savedAt).toLocaleString()}\n`;
+      content += `**Original URL:** [View on Twitter](${thread.url})\n\n`;
+      content += `---\n\n`;
+      
+      if (thread.tweets && thread.tweets.length > 0) {
+        thread.tweets.forEach((tweet, index) => {
+          content += `## Tweet ${index + 1}/${thread.tweets.length}\n\n`;
+          content += `${tweet.text}\n\n`;
+          
+          if (tweet.media && tweet.media.length > 0) {
+            content += `**Media:** ${tweet.media.length} attachment(s)\n\n`;
+          }
+          
+          if (tweet.timestamp) {
+            content += `*${new Date(tweet.timestamp).toLocaleString()}*\n\n`;
+          }
+        });
+      }
+      
+      return content;
+    } else {
+      // Plain text format
+      let content = `Thread by @${thread.authorUsername} (${thread.authorName})\n`;
+      content += `Saved on: ${new Date(thread.savedAt).toLocaleString()}\n`;
+      content += `URL: ${thread.url}\n`;
+      content += `${'='.repeat(50)}\n\n`;
+      
+      if (thread.tweets && thread.tweets.length > 0) {
+        thread.tweets.forEach((tweet, index) => {
+          content += `[${index + 1}/${thread.tweets.length}]\n`;
+          content += `${tweet.text}\n`;
+          if (tweet.timestamp) {
+            content += `(${new Date(tweet.timestamp).toLocaleString()})\n`;
+          }
+          content += '\n';
+        });
+      }
+      
+      return content;
     }
   }
 
@@ -372,18 +485,24 @@ class PopupManager {
       content += '---\n\n';
       
       for (const thread of threads) {
-        const threadContent = await window.ThreadKeeperStorage.exportThread(thread.id, 'markdown');
+        const threadContent = this.generateExportContent(thread, 'markdown');
         content += threadContent + '\n\n---\n\n';
       }
       
       const blob = new Blob([content], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       
-      chrome.downloads.download({
-        url: url,
-        filename: `threadkeeper_export_${Date.now()}.md`,
-        saveAs: true
-      });
+      const filename = `threadkeeper_export_${Date.now()}.md`;
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       
       this.showNotification('All threads exported successfully');
       

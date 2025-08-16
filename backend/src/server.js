@@ -1,4 +1,4 @@
-// backend/src/server.js - Main Express Server
+// src/server.js - Main server file for ThreadKeeper API
 
 const express = require('express');
 const cors = require('cors');
@@ -8,194 +8,186 @@ const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 require('dotenv').config();
 
-// Import middleware
-const { authenticateToken } = require('./middleware/auth');
-const { errorHandler } = require('./middleware/errorHandler');
-const { rateLimiter } = require('./middleware/rateLimiter');
-
-// Import routes
-const authRoutes = require('./routes/auth');
-const threadRoutes = require('./routes/threads');
-const collectionRoutes = require('./routes/collections');
-const tagRoutes = require('./routes/tags');
-const billingRoutes = require('./routes/billing');
-const syncRoutes = require('./routes/sync');
-const analyticsRoutes = require('./routes/analytics');
-
-// Import services
-const { initializeDatabase } = require('./config/database');
-const { initializeStripe } = require('./config/stripe');
-const logger = require('./utils/logger');
-
-// Create Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  }
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false
 }));
 
 // CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'chrome-extension://*',
-      'http://localhost:3000',
-      'https://threadkeeper.app'
-    ];
-    
-    // Allow requests with no origin (like mobile apps)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin matches pattern
-    const isAllowed = allowedOrigins.some(pattern => {
-      if (pattern.includes('*')) {
-        const regex = new RegExp(pattern.replace('*', '.*'));
-        return regex.test(origin);
-      }
-      return pattern === origin;
-    });
-    
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'chrome-extension://*',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true,
-  optionsSuccessStatus: 200
-};
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
-app.use(cors(corsOptions));
-
-// Parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Compression middleware
 app.use(compression());
 
-// Logging
-if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined', { stream: logger.stream }));
-} else {
+// Request logging
+if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined'));
 }
 
-// Global rate limiting
-const globalLimiter = rateLimit({
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Rate limiting
+const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Limit requests per window
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    retryAfter: 15 * 60 // seconds
+  },
   standardHeaders: true,
-  legacyHeaders: false,
+  legacyHeaders: false
 });
 
-app.use('/api/', globalLimiter);
+app.use('/api/', limiter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy',
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// API Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/threads', authenticateToken, threadRoutes);
-app.use('/api/v1/collections', authenticateToken, collectionRoutes);
-app.use('/api/v1/tags', authenticateToken, tagRoutes);
-app.use('/api/v1/billing', authenticateToken, billingRoutes);
-app.use('/api/v1/sync', authenticateToken, syncRoutes);
-app.use('/api/v1/analytics', authenticateToken, analyticsRoutes);
+// API routes
+app.use('/api/v1/auth', require('./routes/auth'));
+app.use('/api/v1/threads', require('./routes/threads'));
+app.use('/api/v1/collections', require('./routes/collections'));
+app.use('/api/v1/tags', require('./routes/tags'));
+app.use('/api/v1/sync', require('./routes/sync'));
+app.use('/api/v1/billing', require('./routes/billing'));
+app.use('/api/v1/analytics', require('./routes/analytics'));
 
-// Static files for web dashboard (if needed)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static('public'));
-}
+// API documentation
+app.get('/api/v1/docs', (req, res) => {
+  res.json({
+    name: 'ThreadKeeper API',
+    version: '1.0.0',
+    description: 'API for ThreadKeeper - Twitter/X Thread Management',
+    endpoints: {
+      auth: {
+        'POST /api/v1/auth/register': 'Register new user',
+        'POST /api/v1/auth/login': 'User login',
+        'POST /api/v1/auth/refresh': 'Refresh JWT token',
+        'POST /api/v1/auth/logout': 'User logout',
+        'GET /api/v1/auth/verify': 'Verify JWT token'
+      },
+      threads: {
+        'GET /api/v1/threads': 'Get user threads',
+        'POST /api/v1/threads': 'Save new thread',
+        'GET /api/v1/threads/:id': 'Get specific thread',
+        'PUT /api/v1/threads/:id': 'Update thread',
+        'DELETE /api/v1/threads/:id': 'Delete thread',
+        'POST /api/v1/threads/search': 'Search threads'
+      },
+      collections: {
+        'GET /api/v1/collections': 'Get collections',
+        'POST /api/v1/collections': 'Create collection',
+        'PUT /api/v1/collections/:id': 'Update collection',
+        'DELETE /api/v1/collections/:id': 'Delete collection'
+      },
+      tags: {
+        'GET /api/v1/tags': 'Get tags',
+        'POST /api/v1/tags': 'Create tag',
+        'PUT /api/v1/tags/:id': 'Update tag',
+        'DELETE /api/v1/tags/:id': 'Delete tag'
+      },
+      sync: {
+        'POST /api/v1/sync/threads': 'Sync threads (Premium)',
+        'GET /api/v1/sync/status': 'Get sync status'
+      },
+      billing: {
+        'POST /api/v1/billing/create-subscription': 'Create subscription',
+        'POST /api/v1/billing/cancel-subscription': 'Cancel subscription',
+        'GET /api/v1/billing/subscription-status': 'Get subscription status'
+      }
+    }
+  });
+});
 
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ 
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
     error: 'Not Found',
-    message: 'The requested resource does not exist',
-    path: req.originalUrl
+    message: `API endpoint ${req.method} ${req.path} not found`,
+    documentation: '/api/v1/docs'
   });
 });
 
-// Error handling middleware (must be last)
-app.use(errorHandler);
-
-// Graceful shutdown handling
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
-
-let server;
-
-async function startServer() {
-  try {
-    // Initialize database
-    await initializeDatabase();
-    logger.info('Database initialized successfully');
-    
-    // Initialize Stripe
-    await initializeStripe();
-    logger.info('Stripe initialized successfully');
-    
-    // Start server
-    server = app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-    });
-    
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
-}
-
-function gracefulShutdown() {
-  logger.info('Graceful shutdown initiated');
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
   
-  if (server) {
-    server.close(() => {
-      logger.info('HTTP server closed');
-      
-      // Close database connections
-      require('./config/database').closeConnection()
-        .then(() => {
-          logger.info('Database connections closed');
-          process.exit(0);
-        })
-        .catch((err) => {
-          logger.error('Error closing database connections:', err);
-          process.exit(1);
-        });
-    });
-    
-    // Force close after 10 seconds
-    setTimeout(() => {
-      logger.error('Forcing shutdown after timeout');
-      process.exit(1);
-    }, 10000);
+  // Default error response
+  let error = {
+    message: 'Internal Server Error',
+    status: 500
+  };
+  
+  // Handle specific error types
+  if (err.name === 'ValidationError') {
+    error.message = err.message;
+    error.status = 400;
+    error.details = err.details;
+  } else if (err.name === 'UnauthorizedError') {
+    error.message = 'Authentication required';
+    error.status = 401;
+  } else if (err.code === '23505') { // PostgreSQL unique constraint
+    error.message = 'Resource already exists';
+    error.status = 409;
+  } else if (err.code === '23503') { // PostgreSQL foreign key constraint
+    error.message = 'Referenced resource not found';
+    error.status = 400;
   }
-}
+  
+  // Don't expose internal errors in production
+  if (process.env.NODE_ENV === 'production' && error.status === 500) {
+    error.message = 'Internal Server Error';
+    delete error.details;
+  }
+  
+  res.status(error.status).json({
+    error: error.message,
+    ...(error.details && { details: error.details })
+  });
+});
 
-// Start the server
-startServer();
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 ThreadKeeper API server running on port ${PORT}`);
+  console.log(`📖 API Documentation: http://localhost:${PORT}/api/v1/docs`);
+  console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
 
 module.exports = app;

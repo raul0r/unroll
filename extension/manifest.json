@@ -2,39 +2,45 @@
   "manifest_version": 3,
   "name": "ThreadKeeper - Save & Organize Twitter/X Threads",
   "version": "1.0.0",
-  "description": "Save, organize, and analyze Twitter/X threads with intelligent features",
+  "description": "Save, organize, and export Twitter/X threads with one click. Local storage, privacy-focused, works on both twitter.com and x.com.",
+  
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "tabs",
-    "identity",
-    "identity.email"
+    "notifications",
+    "contextMenus"
   ],
+  
   "host_permissions": [
     "https://twitter.com/*",
-    "https://x.com/*",
-    "https://api.threadkeeper.app/*"
+    "https://x.com/*"
   ],
+  
   "background": {
-    "service_worker": "background/service-worker.js",
-    "type": "module"
+    "service_worker": "background/service-worker.js"
   },
+  
   "content_scripts": [
     {
-      "matches": ["https://twitter.com/*", "https://x.com/*"],
+      "matches": [
+        "https://twitter.com/*", 
+        "https://x.com/*"
+      ],
       "js": [
         "lib/storage.js",
         "lib/thread-parser.js",
-        "content/twitter-detector.js",
-        "content/button-injector.js",
-        "content/thread-saver.js"
+        "content/button-injector.js"
       ],
-      "css": ["content/styles.css"],
+      "css": [
+        "content/styles.css"
+      ],
       "run_at": "document_idle"
     }
   ],
+  
   "action": {
     "default_popup": "popup/popup.html",
+    "default_title": "ThreadKeeper - Save Threads",
     "default_icon": {
       "16": "assets/icon-16.png",
       "32": "assets/icon-32.png",
@@ -42,19 +48,29 @@
       "128": "assets/icon-128.png"
     }
   },
+  
   "icons": {
     "16": "assets/icon-16.png",
     "32": "assets/icon-32.png",
     "48": "assets/icon-48.png",
     "128": "assets/icon-128.png"
   },
+  
   "options_page": "options/options.html",
+  
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "sidebar/*"],
-      "matches": ["https://twitter.com/*", "https://x.com/*"]
+      "resources": [
+        "assets/*",
+        "sidebar/*"
+      ],
+      "matches": [
+        "https://twitter.com/*",
+        "https://x.com/*"
+      ]
     }
   ],
+  
   "commands": {
     "save-thread": {
       "suggested_key": {
@@ -70,5 +86,13 @@
       },
       "description": "Open ThreadKeeper viewer"
     }
-  }
+  },
+  
+  "homepage_url": "https://github.com/yourusername/threadkeeper",
+  
+  "author": "Your Name",
+  
+  "short_name": "ThreadKeeper",
+  
+  "minimum_chrome_version": "88"
 }

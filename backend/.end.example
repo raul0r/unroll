@@ -1,0 +1,48 @@
+# Server Configuration
+NODE_ENV=development
+PORT=3000
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=threadkeeper
+DB_USER=postgres
+DB_PASSWORD=your_secure_password
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=30d
+
+# Stripe Configuration
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+STRIPE_PRICE_ID_BASIC=price_basic_monthly
+STRIPE_PRICE_ID_PRO=price_pro_monthly
+STRIPE_PRICE_ID_ENTERPRISE=price_enterprise_monthly
+
+# Email Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+EMAIL_FROM=ThreadKeeper <noreply@threadkeeper.app>
+
+# Frontend URLs
+FRONTEND_URL=http://localhost:3000
+EXTENSION_ID=your_chrome_extension_id
+
+# API Keys
+OPENAI_API_KEY=sk_your_openai_key
+TWITTER_API_KEY=your_twitter_api_key
+TWITTER_API_SECRET=your_twitter_api_secret
+
+# Sentry (Error Tracking)
+SENTRY_DSN=your_sentry_dsn
+
+# Analytics
+GOOGLE_ANALYTICS_ID=G-YOUR_ID
+MIXPANEL_TOKEN=your_mixpanel_token

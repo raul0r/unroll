@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreadKeeper - Thread Viewer</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div class="sidebar-container">
+    <!-- Header -->
+    <header class="sidebar-header">
+      <div class="header-content">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2"/>
+            <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <h1>ThreadKeeper</h1>
+        </div>
+        <div class="header-actions">
+          <button id="backBtn" class="icon-btn" title="Back to list" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button id="exportBtn" class="icon-btn" title="Export thread" style="display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Search Bar -->
+      <div class="search-container">
+        <div class="search-box">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search threads..." autocomplete="off">
+          <button id="clearSearchBtn" class="clear-btn" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="sidebar-main" id="sidebarMain">
+      <!-- Thread List View -->
+      <div class="thread-list-view" id="threadListView">
+        <div class="stats-bar">
+          <div class="stat">
+            <span class="stat-value" id="threadCount">0</span>
+            <span class="stat-label">Threads</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="tweetCount">0</span>
+            <span class="stat-label">Tweets</span>
+          </div>
+        </div>
+        
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all">All</button>
+          <button class="filter-tab" data-filter="recent">Recent</button>
+          <button class="filter-tab" data-filter="collections">Collections</button>
+        </div>
+        
+        <!-- Thread List -->
+        <div class="thread-list" id="threadList">
+          <!-- Loading State -->
+          <div class="loading-state" id="loadingState">
+            <div class="spinner"></div>
+            <p>Loading threads...</p>
+          </div>
+          
+          <!-- Empty State -->
+          <div class="empty-state" id="emptyState" style="display: none;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            <h3>No threads saved yet</h3>
+            <p>Visit Twitter/X and click the save button on any thread to get started!</p>
+          </div>
+          
+          <!-- Thread Items Container -->
+          <div class="thread-items" id="threadItems"></div>
+        </div>
+      </div>
+
+      <!-- Thread Detail View -->
+      <div class="thread-detail-view" id="threadDetailView" style="display: none;">
+        <div class="thread-header">
+          <div class="thread-author-info">
+            <img class="author-avatar" id="authorAvatar" src="" alt="">
+            <div class="author-details">
+              <div class="author-name" id="authorName"></div>
+              <div class="author-username" id="authorUsername"></div>
+            </div>
+          </div>
+          <div class="thread-meta">
+            <span class="thread-date" id="threadDate"></span>
+            <span class="thread-stats" id="threadStats"></span>
+          </div>
+        </div>
+        
+        <div class="thread-content" id="threadContent">
+          <!-- Tweets will be populated here -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Thread Item Template -->
+  <template id="threadItemTemplate">
+    <div class="thread-item" data-thread-id="">
+      <div class="thread-avatar">
+        <img src="" alt="">
+      </div>
+      
+      <div class="thread-content">
+        <div class="thread-header">
+          <div class="thread-author">
+            <span class="author-name"></span>
+            <span class="author-username"></span>
+            <span class="verified-badge" style="display: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#1D9BF0">
+                <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z"/>
+              </svg>
+            </span>
+          </div>
+          <div class="thread-meta">
+            <span class="thread-date"></span>
+            <span class="thread-stats">
+              <span class="tweet-count"></span> tweets
+            </span>
+          </div>
+        </div>
+        
+        <div class="thread-preview"></div>
+        
+        <div class="thread-actions">
+          <button class="action-btn view-btn" title="View thread">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="action-btn export-btn" title="Export thread">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+          <button class="action-btn delete-btn" title="Delete thread">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Tweet Template -->
+  <template id="tweetTemplate">
+    <div class="tweet">
+      <div class="tweet-content">
+        <div class="tweet-text"></div>
+        <div class="tweet-media"></div>
+        <div class="tweet-meta">
+          <span class="tweet-timestamp"></span>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="../lib/storage.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+</html>

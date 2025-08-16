@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThreadKeeper Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-container">
+    <header class="options-header">
+      <div class="logo">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2"/>
+          <path d="M17 21v-8H7v8M7 3v5h8" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <h1>ThreadKeeper Settings</h1>
+      </div>
+    </header>
+
+    <main class="options-content">
+      <!-- General Settings -->
+      <section class="settings-section">
+        <h2>General Settings</h2>
+        
+        <div class="setting-item">
+          <label for="autoSave">
+            <input type="checkbox" id="autoSave">
+            <span class="setting-label">Auto-save threads when scrolling</span>
+          </label>
+          <p class="setting-description">Automatically save threads as you read them on Twitter/X</p>
+        </div>
+
+        <div class="setting-item">
+          <label for="notifications">
+            <input type="checkbox" id="notifications" checked>
+            <span class="setting-label">Show notifications when threads are saved</span>
+          </label>
+          <p class="setting-description">Display browser notifications when successfully saving threads</p>
+        </div>
+
+        <div class="setting-item">
+          <label for="defaultExportFormat">
+            <span class="setting-label">Default export format</span>
+            <select id="defaultExportFormat">
+              <option value="markdown">Markdown (.md)</option>
+              <option value="text">Plain Text (.txt)</option>
+              <option value="json">JSON (.json)</option>
+            </select>
+          </label>
+          <p class="setting-description">Choose the default format when exporting threads</p>
+        </div>
+      </section>
+
+      <!-- Storage Settings -->
+      <section class="settings-section">
+        <h2>Storage & Data</h2>
+        
+        <div class="setting-item">
+          <div class="storage-info">
+            <div class="storage-stats">
+              <span class="stat-item">
+                <strong id="totalThreads">0</strong> threads saved
+              </span>
+              <span class="stat-item">
+                <strong id="totalTweets">0</strong> tweets stored
+              </span>
+              <span class="stat-item">
+                <strong id="storageSize">0 KB</strong> used
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <button id="exportAllData" class="action-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            Export All Data
+          </button>
+          <p class="setting-description">Download all your saved threads as a single file</p>
+        </div>
+
+        <div class="setting-item">
+          <button id="clearAllData" class="action-btn danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM10 11v6M14 11v6" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            Clear All Data
+          </button>
+          <p class="setting-description">Permanently delete all saved threads (cannot be undone)</p>
+        </div>
+      </section>
+
+      <!-- About Section -->
+      <section class="settings-section">
+        <h2>About</h2>
+        
+        <div class="about-info">
+          <div class="version-info">
+            <p><strong>Version:</strong> <span id="extensionVersion">1.0.0</span></p>
+            <p><strong>Privacy:</strong> All data is stored locally in your browser</p>
+            <p><strong>Support:</strong> <a href="mailto:support@threadkeeper.app">support@threadkeeper.app</a></p>
+          </div>
+          
+          <div class="links">
+            <a href="https://github.com/yourusername/threadkeeper" target="_blank" class="link-btn">
+              GitHub Repository
+            </a>
+            <a href="https://threadkeeper.app/privacy" target="_blank" class="link-btn">
+              Privacy Policy
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Save Status -->
+    <div id="saveStatus" class="save-status" style="display: none;">
+      Settings saved!
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
