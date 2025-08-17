@@ -356,6 +356,70 @@ class StorageManager {
     return false;
   }
 
+  async deleteTag(tagId) {
+    const tags = await this.getTags();
+    const threads = await this.getThreads();
+    
+    if (!tags[tagId]) return false;
+    
+    // Remove tag from all threads
+    for (const thread of Object.values(threads)) {
+      if (thread.tags.includes(tagId)) {
+        thread.tags = thread.tags.filter(id => id !== tagId);
+      }
+    }
+    
+    // Delete the tag
+    delete tags[tagId];
+    
+    await chrome.storage.local.set({
+      [this.STORAGE_KEYS.THREADS]: threads,
+      [this.STORAGE_KEYS.TAGS]: tags
+    });
+    
+    return true;
+  }
+
+  async updateTag(tagId, updates) {
+    const tags = await this.getTags();
+    
+    if (!tags[tagId]) return false;
+    
+    tags[tagId] = {
+      ...tags[tagId],
+      ...updates,
+      updatedAt: Date.now()
+    };
+    
+    await chrome.storage.local.set({
+      [this.STORAGE_KEYS.TAGS]: tags
+    });
+    
+    return tags[tagId];
+  }
+
+  async getThreadTags(threadId) {
+    const thread = await this.getThread(threadId);
+    const tags = await this.getTags();
+    
+    if (!thread || !thread.tags) return [];
+    
+    return thread.tags.map(tagId => tags[tagId]).filter(Boolean);
+  }
+
+  async getTagsForThread(threadId) {
+    return this.getThreadTags(threadId);
+  }
+
+  async searchTags(query) {
+    const tags = await this.getTags();
+    const queryLower = query.toLowerCase();
+    
+    return Object.values(tags).filter(tag => 
+      tag.name.toLowerCase().includes(queryLower)
+    );
+  }
+
   // Search functionality
   async searchThreads(query, options = {}) {
     const threads = await this.getThreads();

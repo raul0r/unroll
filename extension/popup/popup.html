@@ -123,6 +123,63 @@
     </footer>
   </div>
 
+  <!-- Tag Management Modal -->
+  <div id="tagModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Manage Tags</h3>
+        <button id="closeTagModal" class="modal-close-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-content">
+        <!-- Thread Info -->
+        <div class="thread-info">
+          <div class="thread-author-info">
+            <img id="modalThreadAvatar" src="" alt="" class="modal-avatar">
+            <div>
+              <div id="modalThreadAuthor" class="modal-author-name"></div>
+              <div id="modalThreadUsername" class="modal-author-username"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Assigned Tags -->
+        <div class="assigned-tags-section">
+          <h4>Assigned Tags</h4>
+          <div id="assignedTagsList" class="tags-list"></div>
+        </div>
+        
+        <!-- Available Tags -->
+        <div class="available-tags-section">
+          <h4>Available Tags</h4>
+          <div id="availableTagsList" class="tags-list"></div>
+        </div>
+        
+        <!-- Create New Tag -->
+        <div class="create-tag-section">
+          <h4>Create New Tag</h4>
+          <div class="create-tag-form">
+            <input type="text" id="newTagName" placeholder="Tag name..." maxlength="50">
+            <div class="color-picker">
+              <input type="color" id="newTagColor" value="#1D9BF0">
+              <span class="color-preview"></span>
+            </div>
+            <button id="createTagBtn" class="create-tag-btn">Create</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button id="saveTagsBtn" class="primary-btn">Save Changes</button>
+        <button id="cancelTagsBtn" class="secondary-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Thread Item Template -->
   <template id="threadItemTemplate">
     <div class="thread-item" data-thread-id="">

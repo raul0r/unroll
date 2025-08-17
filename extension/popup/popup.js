@@ -192,16 +192,37 @@ class PopupManager {
     });
   }
 
-  applyFilters() {
+  async applyFilters() {
     let filtered = Object.values(this.threads);
     
     // Apply search filter
     if (this.searchQuery) {
       const query = this.searchQuery.toLowerCase();
+      
+      // Get all tags for tag search
+      let allTags = {};
+      try {
+        allTags = await window.ThreadKeeperStorage.getTags();
+      } catch (error) {
+        console.error('Failed to load tags for search:', error);
+      }
+      
       filtered = filtered.filter(thread => {
-        return thread.authorUsername.toLowerCase().includes(query) ||
-               thread.authorName.toLowerCase().includes(query) ||
-               thread.tweets.some(tweet => tweet.text.toLowerCase().includes(query));
+        // Search in thread content
+        const contentMatch = thread.authorUsername.toLowerCase().includes(query) ||
+                             thread.authorName.toLowerCase().includes(query) ||
+                             thread.tweets.some(tweet => tweet.text.toLowerCase().includes(query));
+        
+        // Search in tags
+        let tagMatch = false;
+        if (thread.tags && thread.tags.length > 0) {
+          tagMatch = thread.tags.some(tagId => {
+            const tag = allTags[tagId];
+            return tag && tag.name.toLowerCase().includes(query);
+          });
+        }
+        
+        return contentMatch || tagMatch;
       });
     }
     
@@ -321,6 +342,9 @@ class PopupManager {
     
     // Set up action buttons
     this.setupThreadActions(item, thread);
+    
+    // Render tags
+    this.renderThreadTags(item, thread);
     
     // Click to view
     item.addEventListener('click', (e) => {
@@ -533,9 +557,279 @@ class PopupManager {
     }
   }
 
-  manageTags(thread) {
-    // TODO: Implement tag management UI
-    console.log('Manage tags for thread:', thread);
+  async manageTags(thread) {
+    this.currentThread = thread;
+    this.modalChanges = {
+      added: new Set(),
+      removed: new Set()
+    };
+    
+    // Load tags and show modal
+    await this.loadTagModal();
+    this.showTagModal();
+  }
+
+  async loadTagModal() {
+    try {
+      // Get all tags and thread's current tags
+      const [allTags, threadTags] = await Promise.all([
+        window.ThreadKeeperStorage.getTags(),
+        window.ThreadKeeperStorage.getThreadTags(this.currentThread.id)
+      ]);
+      
+      this.allTags = Object.values(allTags);
+      this.threadTags = threadTags.map(tag => tag.id);
+      
+      // Update modal content
+      this.updateThreadInfo();
+      this.renderTagLists();
+      
+    } catch (error) {
+      console.error('Failed to load tags:', error);
+      this.showError('Failed to load tags');
+    }
+  }
+
+  updateThreadInfo() {
+    const modal = document.getElementById('tagModal');
+    const avatar = modal.querySelector('#modalThreadAvatar');
+    const authorName = modal.querySelector('#modalThreadAuthor');
+    const username = modal.querySelector('#modalThreadUsername');
+    
+    if (avatar) avatar.src = this.currentThread.authorAvatar || '';
+    if (authorName) authorName.textContent = this.currentThread.authorName;
+    if (username) username.textContent = `@${this.currentThread.authorUsername}`;
+  }
+
+  renderTagLists() {
+    this.renderAssignedTags();
+    this.renderAvailableTags();
+  }
+
+  renderAssignedTags() {
+    const container = document.getElementById('assignedTagsList');
+    if (!container) return;
+    
+    const assignedTags = this.allTags.filter(tag => 
+      this.threadTags.includes(tag.id) || this.modalChanges.added.has(tag.id)
+    ).filter(tag => !this.modalChanges.removed.has(tag.id));
+    
+    if (assignedTags.length === 0) {
+      container.innerHTML = '<div class="empty-tags">No tags assigned</div>';
+      return;
+    }
+    
+    container.innerHTML = assignedTags.map(tag => `
+      <div class="tag-chip assigned" style="background-color: ${tag.color}">
+        ${this.escapeHtml(tag.name)}
+        <button class="remove-tag" data-tag-id="${tag.id}" title="Remove tag">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </button>
+      </div>
+    `).join('');
+    
+    // Add remove handlers
+    container.querySelectorAll('.remove-tag').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tagId = btn.dataset.tagId;
+        this.removeTagFromThread(tagId);
+      });
+    });
+  }
+
+  renderAvailableTags() {
+    const container = document.getElementById('availableTagsList');
+    if (!container) return;
+    
+    const availableTags = this.allTags.filter(tag => 
+      !this.threadTags.includes(tag.id) && 
+      !this.modalChanges.added.has(tag.id) &&
+      !this.modalChanges.removed.has(tag.id)
+    );
+    
+    if (availableTags.length === 0) {
+      container.innerHTML = '<div class="empty-tags">No available tags</div>';
+      return;
+    }
+    
+    container.innerHTML = availableTags.map(tag => `
+      <div class="tag-chip available" style="background-color: ${tag.color}" data-tag-id="${tag.id}">
+        ${this.escapeHtml(tag.name)}
+      </div>
+    `).join('');
+    
+    // Add click handlers
+    container.querySelectorAll('.tag-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tagId = chip.dataset.tagId;
+        this.addTagToThread(tagId);
+      });
+    });
+  }
+
+  addTagToThread(tagId) {
+    this.modalChanges.added.add(tagId);
+    this.modalChanges.removed.delete(tagId);
+    this.renderTagLists();
+  }
+
+  removeTagFromThread(tagId) {
+    this.modalChanges.removed.add(tagId);
+    this.modalChanges.added.delete(tagId);
+    this.renderTagLists();
+  }
+
+  showTagModal() {
+    const modal = document.getElementById('tagModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      
+      // Setup modal event listeners if not already done
+      if (!this.modalListenersSetup) {
+        this.setupTagModalListeners();
+        this.modalListenersSetup = true;
+      }
+    }
+  }
+
+  hideTagModal() {
+    const modal = document.getElementById('tagModal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+      this.currentThread = null;
+      this.modalChanges = { added: new Set(), removed: new Set() };
+    }
+  }
+
+  setupTagModalListeners() {
+    // Close modal handlers
+    document.getElementById('closeTagModal')?.addEventListener('click', () => {
+      this.hideTagModal();
+    });
+    
+    document.getElementById('cancelTagsBtn')?.addEventListener('click', () => {
+      this.hideTagModal();
+    });
+    
+    // Click outside to close
+    document.getElementById('tagModal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'tagModal') {
+        this.hideTagModal();
+      }
+    });
+    
+    // Save changes
+    document.getElementById('saveTagsBtn')?.addEventListener('click', () => {
+      this.saveTagChanges();
+    });
+    
+    // Create new tag
+    document.getElementById('createTagBtn')?.addEventListener('click', () => {
+      this.createNewTag();
+    });
+    
+    // Enter to create tag
+    document.getElementById('newTagName')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        this.createNewTag();
+      }
+    });
+  }
+
+  async createNewTag() {
+    const nameInput = document.getElementById('newTagName');
+    const colorInput = document.getElementById('newTagColor');
+    
+    if (!nameInput || !colorInput) return;
+    
+    const name = nameInput.value.trim();
+    const color = colorInput.value;
+    
+    if (!name) {
+      this.showError('Please enter a tag name');
+      return;
+    }
+    
+    // Check if tag already exists
+    if (this.allTags.some(tag => tag.name.toLowerCase() === name.toLowerCase())) {
+      this.showError('A tag with this name already exists');
+      return;
+    }
+    
+    try {
+      const newTag = await window.ThreadKeeperStorage.createTag(name, color);
+      this.allTags.push(newTag);
+      
+      // Clear inputs
+      nameInput.value = '';
+      colorInput.value = '#1D9BF0';
+      
+      // Add to current thread
+      this.addTagToThread(newTag.id);
+      
+      this.showNotification('Tag created successfully');
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+      this.showError('Failed to create tag');
+    }
+  }
+
+  async saveTagChanges() {
+    try {
+      // Apply changes
+      for (const tagId of this.modalChanges.added) {
+        await window.ThreadKeeperStorage.addTagToThread(this.currentThread.id, tagId);
+      }
+      
+      for (const tagId of this.modalChanges.removed) {
+        await window.ThreadKeeperStorage.removeTagFromThread(this.currentThread.id, tagId);
+      }
+      
+      // Reload threads to update UI
+      await this.loadThreads();
+      this.applyFilters();
+      
+      this.hideTagModal();
+      this.showNotification('Tags updated successfully');
+      
+    } catch (error) {
+      console.error('Failed to save tag changes:', error);
+      this.showError('Failed to save changes');
+    }
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  async renderThreadTags(item, thread) {
+    const tagsContainer = item.querySelector('.thread-tags');
+    if (!tagsContainer) return;
+    
+    if (!thread.tags || thread.tags.length === 0) {
+      tagsContainer.innerHTML = '';
+      return;
+    }
+    
+    try {
+      const allTags = await window.ThreadKeeperStorage.getTags();
+      const threadTags = thread.tags.map(tagId => allTags[tagId]).filter(Boolean);
+      
+      tagsContainer.innerHTML = threadTags.map(tag => `
+        <span class="thread-tag" style="background-color: ${tag.color}">
+          ${this.escapeHtml(tag.name)}
+        </span>
+      `).join('');
+    } catch (error) {
+      console.error('Failed to render thread tags:', error);
+    }
   }
 
   openSidebar() {
